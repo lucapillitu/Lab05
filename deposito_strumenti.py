@@ -14,83 +14,64 @@ class DepositoStrumenti:
     def get_responsabile(self):
         return self.responsabile
 
-    def set_responsabile(self, nuovo_responsabile):
-        self.responsabile = nuovo_responsabile
+    def set_responsabile(self, valore):
+        if not valore.strip():
+            raise ValueError("Nome responsabile non valido")
+        self.responsabile = valore.strip()
+
+        @property
+        def strumenti(self):
+            return list(self.__strumenti)
+
+        @property
+        def prestiti(self):
+            return list(self.__prestiti)
+
+
 
     def carica_file_strumenti(self, file_path):
-        """Carica gli strumenti dal file. Se il file non esiste, FileNotFoundError si propaga al chiamante."""
-        with open(file_path, "r", encoding="utf-8") as f:
-            righe = f.readlines()
 
-        for riga in righe:
-            riga = riga.strip()
-            if riga == "":
-                continue
+        with open(file_path, "r") as f:
+            for l in f.readlines():
+                line = l.strip()
+                if not line:
+                    continue
+                campi = line.split(",")
+                if any(s.codice == campi[0] for s in self.__strumenti):
+                    continue
 
-            campi = riga.split(",")
-            codice = campi[0].strip()
-            tipo = campi[1].strip()
-            marca = campi[2].strip()
-            anno_acquisto = int(campi[3].strip())
-            valore = float(campi[4].strip())
-
-            strumento = Strumento(codice, tipo, marca, anno_acquisto, valore)
-            self.strumenti.append(strumento)
+                self.__strumenti.append(Strumento(campi[0], campi[1], campi[2], int(campi[3]), float(campi[4])))
 
     def aggiungi_strumento(self, tipo, marca, anno_acquisto, valore):
-        """Aggiunge uno strumento nel deposito: aggiunge solo nel sistema e non aggiorna il file"""
-        if len(self.strumenti) == 0:
-            nuovo_numero = 1
-        else:
-            ultimo_strumento = self.strumenti[-1]
-            numero_ultimo_codice = int(ultimo_strumento.codice[1:])
-            nuovo_numero = numero_ultimo_codice + 1
+        nuovo_num = max((int(s.codice[1:]) for s in self.__strumenti), default=0) + 1
 
-        nuovo_codice = f"S{nuovo_numero}"
+        s = Strumento(f"S{nuovo_num}", tipo, marca, anno_acquisto, valore)
 
-        strumento = Strumento(nuovo_codice, tipo, marca, anno_acquisto, valore)
-        self.strumenti.append(strumento)
+        self.__strumenti.append(s)
 
-        return strumento
+        return s
 
     def strumenti_ordinati_per_marca(self):
-        """Ordina gli strumenti per marca in ordine alfabetico"""
-        return sorted(self.strumenti, key=lambda strumento: strumento.marca)
+
+        return sorted(self.strumenti, key=attrgetter("marca"))
 
     def nuovo_prestito(self, data, id_strumento, cognome_allievo):
-        """Crea un nuovo prestito"""
-        strumento_trovato = None
-        for strumento in self.strumenti:
-            if strumento.codice == id_strumento:
-                strumento_trovato = strumento
 
-        if strumento_trovato is None:
-            raise Exception(f"Lo strumento {id_strumento} non è presente nel sistema.")
+        if not any(s.codice == id_strumento for s in self.__strumenti):
+            raise Exception(f"Strumento {id_strumento} non presente nel deposito")
 
-        if not strumento_trovato.disponibile:
-            raise Exception(f"Lo strumento {id_strumento} è già in prestito.")
+        if any(p.id_strumento == id_strumento for p in self.__prestiti):
+            raise Exception(f"Strumento {id_strumento} già in prestito")
 
-        nuovo_codice = f"P{self._prossimo_numero_prestito}"
-        self._prossimo_numero_prestito = self._prossimo_numero_prestito + 1
-
-        prestito = Prestito(nuovo_codice, data, id_strumento, cognome_allievo)
-        strumento_trovato.disponibile = False
-        self.prestiti.append(prestito)
-
+        prestito = Prestito(f"P{self.__contatore_prestiti}", data, id_strumento, cognome_allievo)
+        self.__prestiti.append(prestito)
+        self.__contatore_prestiti += 1
         return prestito
 
     def termina_prestito(self, id_prestito):
-        """Termina un prestito in atto"""
-        prestito_trovato = None
-        for prestito in self.prestiti:
-            if prestito.codice == id_prestito:
-                prestito_trovato = prestito
 
-        if prestito_trovato is None:
-            raise Exception(f"Il prestito {id_prestito} non esiste.")
-
-        for strumento in self.strumenti:
-            if strumento.codice == prestito_trovato.id_strumento:
-                strumento.disponibile = True
-
-        self.prestiti.remove(prestito_trovato)
+        for p in self.__prestiti:
+            if p.codice == id_prestito:
+                self.__prestiti.remove(p)
+                return
+        raise Exception(f"Non è stato trovato nessun prestito : {id_prestito}")
