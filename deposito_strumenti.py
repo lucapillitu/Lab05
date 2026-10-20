@@ -1,5 +1,6 @@
 from strumento import Strumento
 from prestito import Prestito
+from operator import attrgetter
 
 
 class DepositoStrumenti:
@@ -55,6 +56,7 @@ class DepositoStrumenti:
 
         return sorted(self.strumenti, key=attrgetter("marca"))
 
+
     def nuovo_prestito(self, data, id_strumento, cognome_allievo):
 
         if not any(s.codice == id_strumento for s in self.__strumenti):
@@ -67,6 +69,7 @@ class DepositoStrumenti:
         self.__prestiti.append(prestito)
         self.__contatore_prestiti += 1
         return prestito
+
 
     def termina_prestito(self, id_prestito):
 
