@@ -21,10 +21,6 @@ class DepositoStrumenti:
         self.responsabile = valore.strip()
 
 
-
-
-
-
     def carica_file_strumenti(self, file_path):
 
         with open(file_path, "r") as f:
